@@ -13,7 +13,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = StunClient::new(addr);
 
     // Create a UDP socket bound to a local address
-    let local_addr = "172.20.10.2:8009"; // Use a wildcard address to bind to any available port
+    let local_addr = "172.20.10.2:8089"; // Use a wildcard address to bind to any available port
     let udp_socket = UdpSocket::bind(local_addr)?;
 
     // Perform the STUN request to get public IP and port

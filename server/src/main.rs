@@ -11,25 +11,24 @@ async fn func(data: &[u8]) {
 
 #[tokio::main]
 async fn main() {
-    let listener = Arc::new(UdpSocket::bind("172.20.10.2:8009").await.unwrap());
-
+    //let listener = Arc::new(UdpSocket::bind("10.10.56.75:8089").await.unwrap());
+    let listener = Arc::new(TcpListener::bind("127.0.0.1:8080").await.unwrap());
 
     loop {
         let mut buffer = [0; 1024];
         let listener = Arc::clone(&listener);
-        let (_, mut socket) = listener.recv_from(&mut buffer).await.unwrap();
-        println!("Accepted");
 
-        match listener.recv_from(&mut buffer).await {
-            Ok((size_buffer, _)) if size_buffer == 0 => {
-                println!("buffer size if zero");
-                break;
-            },
+        //match listener.recv(&mut buffer).await {
+        let (mut stream, _) = listener.accept().await.unwrap();
+        match stream.read(&mut buffer).await{
             Err(e) => {
+                println!("Accepted");
                 println!("Error");
                 break;
             },
-            Ok((size_buffer, _)) => {
+            //Ok(size_buffer) => {
+            Ok(size_buffer) => {
+                println!("Accepted");
                 tokio::spawn(async move {
                     func(&buffer[0..size_buffer]).await;
                 })
