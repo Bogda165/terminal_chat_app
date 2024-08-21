@@ -15,8 +15,19 @@ name = "MainServer"
 version = "0.1.0"
 dependencies = [
  "Commands",
- "bincode",
+ "Peer",
+ "custom_errors",
  "lazy_static",
+ "tokio",
+ "user",
+]
+
+[[package]]
+name = "Peer"
+version = "0.1.0"
+dependencies = [
+ "Commands",
+ "bincode",
  "tokio",
 ]
 
@@ -91,6 +102,10 @@ name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
+
+[[package]]
+name = "custom_errors"
+version = "0.1.0"
 
 [[package]]
 name = "gimli"
@@ -303,9 +318,9 @@ dependencies = [
 
 [[package]]
 name = "tokio"
-version = "1.39.2"
+version = "1.39.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "daa4fb1bc778bd6f04cbfc4bb2d06a7396a8f299dc33ea1900cedaa316f467b1"
+checksum = "9babc99b9923bfa4804bd74722ff02c0381021eafa4db9949217e3be8e84fff5"
 dependencies = [
  "backtrace",
  "bytes",
@@ -335,6 +350,14 @@ name = "unicode-ident"
 version = "1.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
+
+[[package]]
+name = "user"
+version = "0.1.0"
+dependencies = [
+ "Commands",
+ "custom_errors",
+]
 
 [[package]]
 name = "wasi"

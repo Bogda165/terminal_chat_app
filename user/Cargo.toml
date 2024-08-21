@@ -1,0 +1,8 @@
+[package]
+name = "user"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+custom_errors = {path = "../custom_errors"}
+Commands = {path = "../Commands"}

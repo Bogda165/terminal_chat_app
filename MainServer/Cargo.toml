@@ -5,6 +5,8 @@ edition = "2021"
 
 [dependencies]
 tokio = {version = "1.39.2", features = ["full"]}
-Commands = {path = "../Commands"}
-bincode = "1.3.3"
 lazy_static = "1.5.0"
+Peer = {path = "../Peer"}
+custom_errors = {path = "../custom_errors"}
+Commands = {path = "../Commands"}
+user = {path = "../user"}
