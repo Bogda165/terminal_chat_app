@@ -1,12 +1,18 @@
+use std::ops::Deref;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use bincode;
 use tokio::net::UdpSocket;
 use Commands::Command;
 
-pub trait Peer {
+pub trait Peer
+{
     //TODO add a external function with custom commands to operate with
-    async fn run(&self) {
+    async fn run<F>(&mut self, handler: F)
+        where F: Fn(Command) + Send + Sync + 'static
+    {
+        let handler = Arc::new(handler);
+        //TODO solce this problem without clone, but with lifetimes!!!!!!!!!!
         loop {
             let mut buffer = [0; 1024];
             let socket = Arc::clone(self.get_recv_socket());
@@ -14,23 +20,11 @@ pub trait Peer {
 
             match socket.recv(&mut buffer).await {
                 Ok(buffer_size) => {
-                    tokio::spawn(async move {
-                        //TODO handler should be taken from self written crate
-                        match bincode::deserialize::<Command>(&buffer[..buffer_size]) {
-                            Ok(cmd) => {
-                                match cmd {
-                                    Connect => {
-                                        println!("{:?}", Connect);
-                                    },
-                                    Disconnect => {
-                                        println!("Disconnect");
-                                    },
-                                }
-                            },
-
-                            Err(_) => {
-                                println!("Error while serialization");
-                            }
+                    let command = bincode::deserialize::<Command>(&buffer[..buffer_size]).unwrap();
+                    let handler = Arc::clone(&handler);
+                    tokio::spawn({
+                        async move {
+                            handler(command)
                         }
                     });
                 }

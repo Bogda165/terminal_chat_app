@@ -1,11 +1,17 @@
 pub mod peer;
+
+use std::ops::Deref;
 use std::sync::{Arc, RwLock};
 use tokio::net::UdpSocket;
 use tokio::sync::Mutex;
+use Commands::Command;
+use custom_errors::CustomError;
 pub use crate::peer::Peer;
 
 //TODO change this struct!!!!
-pub struct Server {
+#[derive(Clone)]
+pub struct Server
+{
     recv_socket: Arc<Mutex<UdpSocket>>,
     send_socket: Arc<Mutex<UdpSocket>>,
     addr: String,
@@ -13,7 +19,18 @@ pub struct Server {
     send_port: u16,
 }
 
-impl Server {
+fn handler(cmd: Command) {
+    match cmd {
+        Connect => {
+            println!("{:?}", Connect);
+        },
+        Disconnect => {
+            println!("Disconnect");
+        },
+    }
+}
+impl Server
+{
     pub async fn new(addr: String, recv_port: u16, send_port: u16) -> Self{
         let _recv_socket = Arc::new(Mutex::new(UdpSocket::bind(format!("{}:{}", addr, recv_port)).await.unwrap()));
         let _send_socket = Arc::new(Mutex::new(UdpSocket::bind(format!("{}:{}", addr, send_port)).await.unwrap()));
@@ -28,7 +45,8 @@ impl Server {
     }
 }
 
-impl Peer for Server {
+impl Peer for Server
+{
     fn get_addr(&self) -> &String {
         &self.addr
     }
@@ -50,7 +68,8 @@ impl Peer for Server {
     }
 }
 
-impl Drop for Server {
+impl Drop for Server
+{
     fn drop(&mut self) {
         //TODO send to all users that server is shutodown
         //Drop the socket
