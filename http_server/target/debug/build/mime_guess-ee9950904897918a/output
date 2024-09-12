@@ -1,1 +1,0 @@
-cargo:rustc-env=MIME_TYPES_GENERATED_PATH=/Users/user/RustroverProjects/termnial_chat_app/http_server/target/debug/build/mime_guess-ee9950904897918a/out/mime_types_generated.rs
