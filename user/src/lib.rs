@@ -2,32 +2,29 @@ use custom_errors::CustomError;
 use Commands::Command;
 #[derive(Debug)]
 pub struct User {
-    addr: String,
-    port: u16,
+    addr_recv: (String, u16),
+    addr_send: (String, u16),
 }
 
 impl User {
     pub fn new() -> Self {
         User {
-            addr: "0.0.0.0".to_string(),
-            port: 0,
+            addr_send: ("0.0.0.0".to_string(), 0),
+            addr_recv: ("0.0.0.0".to_string(), 0),
         }
     }
 
-    pub fn new_from(_addr: String, _port: u16 ) -> Self {
+    pub fn new_from(addr_recv: (String, u16), addr_send: (String, u16)) -> Self {
         User {
-            addr: _addr,
-            port: _port,
+            addr_recv,
+            addr_send,
         }
     }
 
     pub fn from_command(cmd: Command) -> Result<Self, CustomError> {
         match cmd {
-            Command::Connect {addr, port, password: _,}=> {
-                Ok(User {
-                    addr,
-                    port,
-                })
+            Command::Connect {addr_recv, addr_send, password: _,}=> {
+                Ok(User::new_from(addr_send, addr_recv))
             },
             _ => {
                 Err(CustomError::InvalidCommand)
@@ -39,8 +36,8 @@ impl User {
         match cmd {
             Command::Connect { .. } => {
                 Ok(Command::Connect {
-                    addr: self.addr.clone(),
-                    port: self.port,
+                    addr_recv: self.addr_recv.clone(),
+                    addr_send: self.addr_send.clone(),
                     password: false,
                 })
             },

@@ -6,7 +6,9 @@ edition = "2021"
 [dependencies]
 tokio = {version = "1.39.2", features = ["full"]}
 lazy_static = "1.5.0"
-Peer = {path = "../Peer"}
+CustomServer_lib = {path = "../../CustomSocket/CustomServer_lib"}
+CustomSocket_lib = {path = "../../CustomSocket/CustomSocket_lib"}
 custom_errors = {path = "../custom_errors"}
 Commands = {path = "../Commands"}
 user = {path = "../user"}
+serde = "1.0.208"

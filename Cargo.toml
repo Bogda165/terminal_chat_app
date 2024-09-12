@@ -6,4 +6,6 @@ edition = "2021"
 [dependencies]
 tokio = { version = "1.39.2", features = ["full"] }
 Commands = {path = "Commands"}
+CustomServer_lib = {path = "../CustomSocket/CustomServer_lib"}
+CustomSocket_lib = {path = "../CustomSocket/CustomSocket_lib"}
 bincode = "1.3.3"
