@@ -5,10 +5,11 @@
 **/http_server/target/
 **/MainServer/target/
 
-
 **/Cargo.lock
 **/client/Cargo.lock
 **/Commands/Cargo.lock
 **/custom_errors/Cargo.lock
 **/http_server/Cargo.lock
 **/MainServer/Cargo.lock
+**/.idea
+**/user/
