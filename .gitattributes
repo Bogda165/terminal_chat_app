@@ -1,3 +1,4 @@
 #ignore make files
 *.lock linguist-vendored
 *.toml linguist-vendored
+git
