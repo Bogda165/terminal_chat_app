@@ -1,5 +1,6 @@
 **/target/
 **/client/target/
+**/user/target/
 **/Commands/target/
 **/custom_errors/target/
 **/http_server/target/
@@ -7,9 +8,10 @@
 
 **/Cargo.lock
 **/client/Cargo.lock
+**/user/Cargo.lock
 **/Commands/Cargo.lock
 **/custom_errors/Cargo.lock
 **/http_server/Cargo.lock
 **/MainServer/Cargo.lock
 **/.idea
-**/user/
+
