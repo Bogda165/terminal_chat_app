@@ -1,10 +1,19 @@
 use serde::{Serialize, Deserialize};
 use custom_errors::CustomError;
 
+#[derive(
+Serialize, Deserialize, Debug
+)]
+pub enum MessageD {
+    Text {message: String},
+    File {path: String},
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Command {
-    Connect {addr_recv: (String, u16), addr_send: (String, u16), password: bool},
+    Connect {addr_send: (String, u16), addr_recv: (String, u16), password: bool, add_info: String},
     Disconnect {addr: String, port: u16},
+    Message {id: i32, data: MessageD}
 }
 
 impl Command {

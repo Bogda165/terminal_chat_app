@@ -1,4 +1,5 @@
 mod server;
+mod server_header;
 
 use std::str::FromStr;
 use std::sync::Arc;
@@ -20,6 +21,11 @@ async fn main() {
     let mut server = Arc::new(MainServer::new("127.0.0.1".parse().unwrap(), 8090, 8091, timeout_handler, receive_handler).await);
 
     server.server.timeout_handler.lock().await.set_socket(server.server.get_ss());
+    {
+        let recv_handler = server.server.receive_handler.clone();
+        let mut recv_handler_g = recv_handler.write().await;
+        *recv_handler_g = MyRecvHandler::get_from_server(server.clone());
+    }
 
     let _server = server.clone();
     let recv = _server.server.start();
@@ -41,6 +47,7 @@ async fn main() {
                         addr_recv: (parts[0].to_string(), u16::from_str(parts[1]).unwrap()),
                         addr_send: (parts[2].to_string(), u16::from_str(parts[3]).unwrap()),
                         password: false,
+                        add_info: "".to_string(),
                     };
                 },
                 '1' => {

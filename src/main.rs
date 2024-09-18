@@ -17,6 +17,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         addr: "127.0.0.2".to_string(),
         port: 8080,
         password: false,
+        add_info: "".to_string(),
     };
 
     let message = bincode::serialize(&message).unwrap();

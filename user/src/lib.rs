@@ -21,10 +21,10 @@ impl User {
         }
     }
 
-    pub fn from_command(cmd: Command) -> Result<Self, CustomError> {
+    pub fn from_command(cmd: Command) -> Result<(Self, String), CustomError> {
         match cmd {
-            Command::Connect {addr_recv, addr_send, password: _,}=> {
-                Ok(User::new_from(addr_send, addr_recv))
+            Command::Connect {addr_recv, addr_send, password: _, add_info}=> {
+                Ok((User::new_from(addr_recv, addr_send), add_info))
             },
             _ => {
                 Err(CustomError::InvalidCommand)
@@ -32,16 +32,25 @@ impl User {
         }
     }
 
-    pub fn to_command(&self, cmd: Command) -> Result<Command, CustomError> {
+    pub fn to_command(&self, cmd: Command, add_info: String) -> Result<Command, CustomError> {
         match cmd {
             Command::Connect { .. } => {
                 Ok(Command::Connect {
                     addr_recv: self.addr_recv.clone(),
                     addr_send: self.addr_send.clone(),
                     password: false,
+                    add_info
                 })
             },
             _ => {Err(CustomError::FailedConverting)}
         }
+    }
+
+    pub fn get_recv_addr(&self) -> (String, u16) {
+        self.addr_recv.clone()
+    }
+
+    pub fn get_send_addr(&self) -> (String, u16) {
+        self.addr_send.clone()
     }
 }
