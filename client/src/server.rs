@@ -85,6 +85,7 @@ impl MyRecvHandler {
 
 impl RecvHandler for MyRecvHandler {
     fn on_recv(&self, data: Vec<u8>) -> impl Future<Output=()> + Send + Sync {
+        #[cfg(debug_assertions)]
         println!("recv");
         let mut cmd = match Command::from_vec(data) {
             Ok(cmd) => {
@@ -95,6 +96,7 @@ impl RecvHandler for MyRecvHandler {
         async move {
             match &cmd {
                 Command::Connect { .. } => {
+                    #[cfg(debug_assertions)]
                     println!("Recv connect command");
                     let (user, id) = User::from_command(cmd).unwrap();
 
@@ -109,6 +111,7 @@ impl RecvHandler for MyRecvHandler {
                     let mut header_g = self.header.lock().await;
                     if (header_g.id == None) && (user.get_recv_addr() == header_g.recv && user.get_send_addr() == header_g.send) {
                         header_g.id = Some(id);
+                        #[cfg(debug_assertions)]
                         println!("Id changed to some)()()");
                         return;
                     }

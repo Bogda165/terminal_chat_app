@@ -80,6 +80,7 @@ impl MyRecvHandler {
     }
 //notify all users that user is connected
     pub async fn notify(&self, new_user_id: i32) {
+        #[cfg(debug_assertions)]
         println!("notify");
         let ug = self.users.read().await;
 
@@ -100,6 +101,7 @@ impl MyRecvHandler {
             {
                 let send_queue = self.send_queue.clone();
                 let mut sqg = send_queue.lock().await;
+                #[cfg(debug_assertions)]
                 println!("Added to a queue");
                 sqg.push_back((user.1.get_recv_addr().0, user.1.get_recv_addr().1, cmd.to_vec()));
             }
@@ -107,6 +109,7 @@ impl MyRecvHandler {
     }
 
     pub async fn send_table(&self, new_user: &(User, String)) {
+        #[cfg(debug_assertions)]
         println!("Send table of users to user~");
 
         let ug = self.users.read().await;
@@ -154,6 +157,7 @@ impl RecvHandler for MyRecvHandler {
                         let users = self.users.clone();
                         let mut users_g = users.write().await;
                         users_g.insert(id, user.0);
+                        #[cfg(debug_assertions)]
                         println!("Added a user");
                     }
                     //notify all users
