@@ -1,5 +1,6 @@
 mod server;
 
+use std::num::ParseIntError;
 use std::str::FromStr;
 use std::sync::Arc;
 use CustomServer_lib::DefaultRecvHandler;
@@ -9,7 +10,8 @@ use tokio::net::*;
 use Commands;
 use Commands::Command;
 use Commands::Command::Disconnect;
-use crate::server::{Client, MyRecvHandler, MyTimeoutHandler};
+use user::User;
+use server::{Client, MyRecvHandler, MyTimeoutHandler, SendObj};
 
 //use udp safe protocols will be written later!!!
 
@@ -24,16 +26,9 @@ async fn read_ports() -> (u16, u16) {
     (u16::from_str(ports[0]).unwrap(), u16::from_str(ports[1]).unwrap())
 }
 
-#[tokio::main]
-async fn main() {
-    let (recv, send) = read_ports().await;
 
-    println!("{}, {}", recv, send);
-
-    let timeout_handler = MyTimeoutHandler::new();
-    let receive_handler = MyRecvHandler::new();
-
-    let mut server = Arc::new(Client::new("127.0.0.1".parse().unwrap(), recv, send, timeout_handler, receive_handler).await);
+async fn test_config(server: Arc<Client>) {
+    let server = server.clone();
 
     server.server.timeout_handler.lock().await.set_socket(server.server.get_ss());
 
@@ -43,6 +38,19 @@ async fn main() {
         *recv_handler_g = MyRecvHandler::get_from_server(server.clone());
     }
 
+    let ms = User::new_from(("127.0.0.1".to_string(), 8090), ("127.0.0.1".to_string(), 8091),);
+    server.connect_main_server(ms).await.unwrap();
+}
+
+#[tokio::main]
+async fn main() {
+    let (recv, send) = read_ports().await;
+
+    println!("{}, {}", recv, send);
+    let mut server = Arc::new(Client::new("127.0.0.1".parse().unwrap(), recv, send, MyTimeoutHandler::new(), MyRecvHandler::new()).await);
+
+    test_config(server.clone()).await;
+
     let _server = server.clone();
     let recv = _server.server.start();
 
@@ -50,36 +58,38 @@ async fn main() {
     let send = tokio::spawn(async move {
         let stdin = io::stdin();
         let mut reader = io::BufReader::new(stdin).lines();
+        let mut current_id = -1;
 
         while let Ok(Some(line)) = reader.next_line().await {
+            let server = __server.clone();
             println!("{}", line);
             let mut cmd = Disconnect { addr: "".to_string(), port: 0 };
-            match line.chars().next().unwrap() {
-                '0' => {
-                    let command_line = &line[1..];
-                    let parts: Vec<_> = command_line.split(",").collect();
-
-                    cmd = Command::Connect {
-                        addr_recv: (parts[0].to_string(), u16::from_str(parts[1]).unwrap()),
-                        addr_send: (parts[2].to_string(), u16::from_str(parts[3]).unwrap()),
-                        password: false,
-                        add_info: "".to_string(),
-                    };
-                },
-                '1' => {
+            match line.as_str() {
+                "dis" => {
                     cmd = Disconnect { addr: "".to_string(), port: 0 }
                 },
-                '2' => {
-                    let command_line = &line[1..];
-                    let parts: Vec<_> = command_line.split(",").collect();
+                "message" => {
+                    let line = reader.next_line().await.unwrap().unwrap();
+                    let mut id;
+                    {
+                        let header_g = server.header.lock().await;
+                        id = match header_g.id{
+                            None => {
+                                println!("Client is not connected to any servers");
+                                continue;
+                            }
+                            Some(id) => {id}
+                        };
+                    }
+
 
                     cmd = Command::Message {
-                        id: i32::from_str(parts[0]).unwrap(),
-                        data: Commands::MessageD::Text{message: parts[1].to_string()},
+                        id: id as i32,
+                        data: Commands::MessageD::Text{message: line},
                     };
 
                 }
-                '3' => {
+                "ht" => {
                     let header = server.header.clone();
                     let users = server.users.clone();
                     tokio::spawn(async move {
@@ -93,25 +103,19 @@ async fn main() {
                     });
                     continue;
                 }
-                //connect itself to a server
-                '4' => {
-                    let _header = __server.header.clone();
-                    let _header_g = _header.lock().await;
-                    let recv = _header_g.recv.clone();
-                    let send = _header_g.send.clone();
-                    println!("Header: {:?}", _header_g);
-                    cmd = Command::Connect {
-                        addr_recv: recv,
-                        addr_send: send,
-                        password: false,
-                        add_info: "".to_string(),
-                    };
-                }
+
                 _ => {
-                    panic!("Error command is not recognized");
+                    //change receiver
+                    current_id = match i32::from_str(&*line){
+                        Ok(id) => {id}
+                        Err(_) => {panic!("Error command is not recognized");}
+                    };
+                    continue;
                 }
             }
-            __server.server.send("127.0.0.1".to_string(), 8090, cmd.to_vec()).await;
+            //#[cfg(debug_assertions)]
+            println!("Send to: {}->{:?}", current_id, cmd);
+            server.send(SendObj::CLIENT(current_id), cmd).await.unwrap()
         }
     });
 

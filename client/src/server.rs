@@ -10,159 +10,29 @@ use Commands::{Command, MessageD};
 use CustomServer_lib::{CustomServer, DefaultRecvHandler};
 use CustomSocket_lib::CustomSocket;
 use CustomSocket_lib::timeout_handler::TimeoutHandler;
+use custom_errors::CustomError;
+
 mod server_header;
+mod recv_handler;
+mod timeout_handler;
+
 use server_header::ServerHeader;
-
-pub struct MyTimeoutHandler {
-    socket_send: Option<Arc<CustomSocket>>,
-}
-
-impl MyTimeoutHandler {
-    pub(crate) fn set_socket(&mut self, socket: Arc<CustomSocket>) {
-        self.socket_send = Some(socket);
-    }
-
-    pub(crate) fn new() -> Self {
-        MyTimeoutHandler {
-            socket_send : None,
-        }
-    }
-}
-
-impl TimeoutHandler for MyTimeoutHandler {
-    fn timeouts_handler(&mut self, timeouts: Vec<String>) -> impl Future<Output=()> + Send + Sync {
-        async {
-            for timeout in timeouts {
-                println!("timeout {}", timeout);
-                let a_m: Vec<&str> = timeout.split("|").collect();
-                let i_p: Vec<&str> = a_m[0].clone().split(":").collect();
-                let (ip, port) = (i_p[0].clone().to_string(), i_p[1].clone().parse::<u16>().unwrap());
-                println!("Try to send on {}:{}", ip, port);
-                match &self.socket_send {
-                    None => {
-                        panic!("There is no socket in timeouthandler")
-                    }
-                    Some(socket) => {
-                        socket.send(ip.to_string(), port, "Timeout".as_bytes().to_vec(), 100).await.unwrap()
-                    }
-                }
-            }
-        }
-    }
-}
-
-pub struct MyRecvHandler {
-    header: Arc<Mutex<ServerHeader>>,
-    users: Arc<RwLock<HashMap<i32, User>>>,
-}
-
-impl MyRecvHandler {
-    pub fn new() -> Self {
-        MyRecvHandler {
-            header: Arc::new(Mutex::new(ServerHeader::new())),
-            users: Arc::new(RwLock::new(HashMap::new()))
-        }
-    }
-
-    pub fn get_from_server(server: Arc<Client>) -> Self {
-        MyRecvHandler {
-            header: server.header.clone(),
-            users: server.users.clone(),
-        }
-    }
-
-    pub async fn show_users(&self) {
-        println!("Printing all users:");
-        let users = self.users.clone();
-        let users_g = users.write().await;
-        for i in users_g.iter().clone() {
-            println!("User: {:?}", i);
-        }
-    }
-}
-
-
-
-impl RecvHandler for MyRecvHandler {
-    fn on_recv(&self, data: Vec<u8>) -> impl Future<Output=()> + Send + Sync {
-        #[cfg(debug_assertions)]
-        println!("recv");
-        let mut cmd = match Command::from_vec(data) {
-            Ok(cmd) => {
-                cmd
-            },
-            Err(err) => {panic!("{}", err)},
-        };
-        async move {
-            match &cmd {
-                Command::Connect { .. } => {
-                    #[cfg(debug_assertions)]
-                    println!("Recv connect command");
-                    let (user, id) = User::from_command(cmd).unwrap();
-
-                    let id = match u16::from_str(id.as_str()){
-                        Ok(id) => {id}
-                        Err(_) => {
-                            println!("Additional information does not contain id");
-                            return;
-                        }
-                    };
-                    //check
-                    let mut header_g = self.header.lock().await;
-                    if (header_g.id == None) && (user.get_recv_addr() == header_g.recv && user.get_send_addr() == header_g.send) {
-                        header_g.id = Some(id);
-                        #[cfg(debug_assertions)]
-                        println!("Id changed to some)()()");
-                        return;
-                    }
-
-                    //add to hasp map
-                    drop(header_g);
-                    let users = self.users.clone();
-                    let mut users_g = users.write().await;
-
-                    users_g.insert(id as i32, user);
-                }
-                Command::Disconnect { .. } => {
-                    self.show_users().await;
-                    return;
-                }
-                Command::Message {id, data} => {
-                    match data {
-                        MessageD::Text { message } => {
-                            //get ip of the user
-                            let (ip, port) =
-                            {
-                                let users = self.users.read().await;
-                                let user = users.get(id).unwrap();
-                                //TODO no users exeption
-                                user.get_recv_addr()
-                            };
-                            println!("{}:{} -> {}", ip, port, message);
-                        }
-                        MessageD::File { .. } => {
-                            println!("file received");
-                            unreachable!()
-                        }
-                        _ => {
-                            panic!("Unknown type of the command")
-                        }
-                    }
-                }
-                _ => {
-                    panic!("Unknown command")
-                }
-            }
-        }
-    }
-}
+pub use crate::server::recv_handler::MyRecvHandler;
+pub use crate::server::SendObj::SERVER;
+pub use crate::server::timeout_handler::MyTimeoutHandler;
 
 lazy_static!(
     static ref COUNTER: Mutex<i32> = Mutex::new(0);
 );
 
+pub enum SendObj {
+    SERVER,
+    CLIENT(i32)
+}
+
 pub struct Client {
     pub header: Arc<Mutex<ServerHeader>>,
+    // with id -1 always must be a server, it can be empty but it is reserved to a server
     pub users: Arc<RwLock<HashMap<i32, User>>>,
     pub server: CustomServer<MyTimeoutHandler, MyRecvHandler>,
 }
@@ -183,6 +53,28 @@ impl Client
         }
     }
 
+    pub async fn connect_main_server (&self, ms: User) -> Result<(), CustomError> {
+        println!("Connection to main server");
+        {
+            let mut users_g = self.users.write().await;
+            users_g.insert(-1, ms);
+        }
+        let _header = self.header.clone();
+        let _header_g = _header.lock().await;
+        let recv = _header_g.recv.clone();
+        let send = _header_g.send.clone();
+
+
+        let command = Command::Connect {
+            addr_recv: recv,
+            addr_send: send,
+            password: false,
+            add_info: "".to_string(),
+        };
+
+        self.send(SERVER, command).await
+    }
+
     async fn connect_user(&self, user: User) {
         let user_id = {
             let mut _counter = COUNTER.lock().await;
@@ -198,5 +90,35 @@ impl Client
     async fn disconnect_user(&self, user_id: i32) {
         let mut users = self.users.write().await;
         users.remove(&user_id);
+    }
+
+    pub async fn send(&self, send_obj: SendObj, cmd: Command) -> Result<(), CustomError> {
+        // send to a user from a hasp map
+        // get a send obj
+        let user_id =  match send_obj {
+            SendObj::SERVER => {-1 }
+            SendObj::CLIENT(id) => {id}
+        };
+
+        //get a user info
+        let s_user_recv;
+        {
+            let users_g = self.users.read().await;
+            s_user_recv = match users_g.get(&user_id) {
+                None => {
+                    return Err(CustomError::NoUserWithThisId)
+                }
+                Some(user) => {
+                    user.get_recv_addr().clone()
+                }
+            };
+
+            drop(users_g)
+        }
+        //send
+        println!("{}, {}, {:?}", s_user_recv.0, s_user_recv.1, cmd);
+        self.server.send(s_user_recv.0, s_user_recv.1, cmd.to_vec()).await;
+
+        Ok(())
     }
 }
