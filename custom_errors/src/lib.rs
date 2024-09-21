@@ -5,6 +5,7 @@ pub enum CustomError {
     InvalidCommand,
     FailedConverting,
     FailedToChangeHandler,
+    NoUserWithThisId,
 }
 
 impl std::fmt::Display for CustomError {
@@ -18,6 +19,9 @@ impl std::fmt::Display for CustomError {
             }
             CustomError::FailedToChangeHandler => {
                 write!(f, "The server's handler function was already initialized")
+            }
+            CustomError::NoUserWithThisId => {
+                write!(f, "There is no user with this id")
             }
             _ => {
                 write!(f, "WTF??")

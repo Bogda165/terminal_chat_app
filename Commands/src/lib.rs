@@ -13,6 +13,7 @@ pub enum MessageD {
 pub enum Command {
     Connect {addr_send: (String, u16), addr_recv: (String, u16), password: bool, add_info: String},
     Disconnect {addr: String, port: u16},
+    // id of a user, a message was send by
     Message {id: i32, data: MessageD}
 }
 
