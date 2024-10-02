@@ -18,7 +18,7 @@ async fn main() {
     let timeout_handler = MyTimeoutHandler::new();
     let receive_handler = MyRecvHandler::new();
 
-    let mut server = Arc::new(MainServer::new("127.0.0.1".parse().unwrap(), 8090, 8091, timeout_handler, receive_handler).await);
+    let mut server = Arc::new(MainServer::new("10.10.15.128".parse().unwrap(), 8090, 8091, timeout_handler, receive_handler).await);
 
     server.server.timeout_handler.lock().await.set_socket(server.server.get_ss());
     {
@@ -57,7 +57,7 @@ async fn main() {
                     panic!("Error command is not recognized");
                 }
             }
-            __server.server.send("127.0.0.1".to_string(), 8081, cmd.to_vec()).await;
+            __server.server.send("10.10.15.128".to_string(), 8081, cmd.to_vec()).await;
         }
     });
 
