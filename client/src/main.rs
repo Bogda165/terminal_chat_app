@@ -38,7 +38,7 @@ async fn test_config(server: Arc<Client>) {
         *recv_handler_g = MyRecvHandler::get_from_server(server.clone());
     }
 
-    let ms = User::new_from(("127.0.0.1".to_string(), 8090), ("127.0.0.1".to_string(), 8091),);
+    let ms = User::new_from(("10.10.15.128".to_string(), 8090), ("10.10.15.128".to_string(), 8091),);
     server.connect_main_server(ms).await.unwrap();
 }
 
@@ -47,7 +47,7 @@ async fn main() {
     let (recv, send) = read_ports().await;
 
     println!("{}, {}", recv, send);
-    let mut server = Arc::new(Client::new("127.0.0.1".parse().unwrap(), recv, send, MyTimeoutHandler::new(), MyRecvHandler::new()).await);
+    let mut server = Arc::new(Client::new("10.10.15.128".parse().unwrap(), recv, send, MyTimeoutHandler::new(), MyRecvHandler::new()).await);
 
     test_config(server.clone()).await;
 
@@ -102,6 +102,38 @@ async fn main() {
                         }
                     });
                     continue;
+                }
+
+                "dos" => {
+                    let mut id;
+                    {
+                        let header_g = server.header.lock().await;
+                        id = match header_g.id{
+                            None => {
+                                println!("Client is not connected to any servers");
+                                continue;
+                            }
+                            Some(id) => {id}
+                        };
+                    }
+
+                    for _ in 0..1000 {
+                        let cmd = Command::Message {
+                            id: id as i32,
+                            data: Commands::MessageD::Text { message: "Hello how are you? I am fine btw".to_string() },
+                        };
+
+                        server.send(SendObj::CLIENT(current_id), cmd).await.unwrap()
+                    }
+
+                    let cmd = Command::Message {
+                        id: id as i32,
+                        data: Commands::MessageD::Text {message: "it's the end".to_string() },
+                    };
+
+                    server.send(SendObj::CLIENT(current_id), cmd).await.unwrap();
+
+                    println!("I mean it is the end");
                 }
 
                 _ => {
